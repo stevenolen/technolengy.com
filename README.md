@@ -1,1 +1,4 @@
-# technolengy.com
+
+# Blog
+
+A really simple blog
