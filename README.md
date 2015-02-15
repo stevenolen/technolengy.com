@@ -1,4 +1,4 @@
 
 # Blog
 
-A really simple blog
+A really simple blog.
