@@ -1,0 +1,15 @@
+language: node_js
+node_js:
+  - "0.10"
+before_install:
+  - npm install wintersmith
+script:
+  - wintersmith build
+#after_success: 
+#  - bash gh-pages-hook.sh
+branches:
+  only:
+    master
+env: 
+  global:
+    secure: "MlWefimnrJgNmwuDWqrKKbLX8CUTwpA3nTthTw3CKOaW7B8Pytvw5Ab1QZZwG41fw9X7Q4j838WVYy2FI+XM7FMKLKxL0b0fLMP1kHIBZiafJfj7NVITLFyPA23qu3ujXNJZUdnvQQnXVqW5zn4amPNdjN8Pi0zb3POgswFqObw="
