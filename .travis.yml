@@ -5,8 +5,8 @@ before_install:
   - npm install wintersmith
 script:
   - wintersmith build
-#after_success: 
-#  - bash gh-pages-hook.sh
+after_success: 
+  - bash gh-pages-deploy.sh
 branches:
   only:
     master
