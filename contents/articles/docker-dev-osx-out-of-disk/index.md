@@ -1,5 +1,5 @@
 ---
-title: Docker "Development" on OSX: out of space!
+title: "Docker "Development" on OSX: out of space!"
 author: steve-nolen
 date: 2016-01-21
 template: article.jade
