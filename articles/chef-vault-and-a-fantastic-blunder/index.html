@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>Chef-Vault and a Fantastic Blunder - Derp-min
+    </title>
+    <link rel="alternate" href="http://localhost:8080/feed.xml" type="application/rss+xml" title="A sysadmin with a tendency to derp.">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body class="article-detail">
+    <header class="header">
+      <div class="content-wrap">
+        <h1>Chef-Vault and a Fantastic Blunder</h1>
+        <p class="author">Written by <span class="author"><a href="mailto:technolengy@gmail.com">Steve Nolen</a></span>
+        </p>
+      </div>
+    </header>
+    <div id="content">
+      <div class="content-wrap">
+        <article class="article">
+          <section class="content"><p>This morning, like some other mornings, I really screwed one up! It’s never fun to admit, but it is a part of life and in the spirit of openness I’ll just do my best to embrace it!
+Some background: I really, really love <a href="https://github.com/Nordstrom/chef-vault">chef-vault</a>. Apparently this morning I also really forgot how it works when I stupidly reset my chef
+private key. In case you ever make this amazing mistake, here’s how I went about resolving&nbsp;it!</p>
+<hr>
+<p>I love having my chef cookbooks as open as possible, so in turn I really love using chef-vault to quickly and effectively privatize any (even potentially) private content! 
+It’s a breath of fresh air to anyone who has tried to manage encrypted databags on their own, or even just tried to manually set node attributes from the chef web manager for private content. Very briefly, it works by using the existing chef certificate method to encrypt a data bag such that your chef private key, the chef private keys of your other admins and any node that matches a search query is able to decrypt the data bag. It, in my opinion, is far superior to the traditional shared-secret approach of chef encrypted data&nbsp;bags.</p>
+<p>Unfortunately, I really goofed this morning. I made a new organization on my chef server and for some unknown reason I decided to grab the ‘starter kit’ instead of setting the validation key for the new org (resulting in the regeneration of my chef user private key). Hey! Bad news! chef-vault uses that private key to decrypt my vaults! So when I went to edit a vault item, I was met with this wonderful&nbsp;exception:</p>
+<pre><code>ERROR: ChefVault::Exceptions::SecretDecryption: vault/item is encrypted for you, but your private key failed to decrypt the contents.  (if you regenerated your client key, have an administrator of the vault run &#39;knife vault refresh&#39;)
+</code></pre><p>Well certainly that’s no problem I’ll just have a vault admin run the comm…oh. my only other vault administrator hasn’t set up their keys yet. Great. Now what? I can go through the lengthy process of getting all of the private content from each host where it’s been dropped and piece the bags back together – but i’ve got loads of pieces in different places, and their format on disk is slightly different than the data bag storage. Thankfully, I still had this old key around that I could&nbsp;use!</p>
+<p>The real fun starts! I wanted to use <code>knife vault show</code> or <code>knife vault edit</code> to get the current state of the bags, but now I have two keys: 1) gets me authenticated with chef, but wont decrypt the bags, 2) decrypts the bags but wont authenticate me with chef! So I dug down into the chef-vault code to see how they were handling this and did a one-line patch to <a href="https://github.com/Nordstrom/chef-vault/blob/17385e5610ff17be848f6848942658abe863bb17/lib/chef-vault/item.rb#L103">this file</a> (note I’ve used a git commit ref in case the line number changes in the future!)&nbsp;to:</p>
+<pre><code class="lang-ruby">private_key = <span class="symbol">OpenSSL:</span><span class="symbol">:PKey</span><span class="symbol">:</span><span class="symbol">:<span class="caps">RSA</span></span>.new(open(<span class="string">'/path/to/old/key.pem'</span>).read())
+</code></pre>
+<p>Which allowed knife to use the normal chef key to grab the data bag, but chef-vault to use my old key to decrypt! A total hack, but a fun way to fix a stupid problem caused by yours&nbsp;truly. </p>
+</section>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="content-wrap">
+        <div class="nav"><a href="/">« Full blog</a></div>
+        <section class="about"><p>This blog is poorly constructed and infrequently updated by Steve Nolen. 
+It’s wonderfully static existence is thanks to <a href="http://wintersmith.io">Wintersmith</a>.</p>
+
+        </section>
+        <section class="copy">
+          <p>&copy; 2016 Steve Nolen &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          </p>
+        </section>
+      </div>
+    </footer>
+  </body>
+</html>

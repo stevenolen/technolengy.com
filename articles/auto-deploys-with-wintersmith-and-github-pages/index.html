@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>Auto Deploys using wintersmith, travisci and github pages - Derp-min
+    </title>
+    <link rel="alternate" href="http://localhost:8080/feed.xml" type="application/rss+xml" title="A sysadmin with a tendency to derp.">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body class="article-detail">
+    <header class="header">
+      <div class="content-wrap">
+        <h1>Auto Deploys using wintersmith, travisci and github pages</h1>
+        <p class="author">Written by <span class="author"><a href="mailto:technolengy@gmail.com">Steve Nolen</a></span>
+        </p>
+      </div>
+    </header>
+    <div id="content">
+      <div class="content-wrap">
+        <article class="article">
+          <section class="content"><p>My latest attempt at a blog has been dead for nearly a year. Why run a wordpress install for a few posts from a year back, right?
+So I moved the content to a <a href="http://wintersmith.io">wintersmith</a> template and hooked into a <a href="https://travis-ci.org/">TravisCI</a> build to send the compiled
+static content back to github for hosting on github pages. Here’s how I did&nbsp;it!</p>
+<hr>
+<p>Unsuprisingly, I didn’t come up with this process on my own. However, while searching I couldn’t find anyone who had used TravisCI and wintersmith in particular, so maybe this will be helpful to someone, somewhere! My goal was to use only one github repository to host the wintersmith (jade assets and plugins) and the compiled code to be served on github pages.  First, I grabbed
+wintersmith from npm with <code>npm install -g wintersmith</code> and initiated a default blog template: <code>wintersmith new technolengy.com</code>. After modifying the content to my pleasing (as you can likely tell, I didn’t even bother changing the <span class="caps">CSS</span> one bit. If it were socially acceptable I’d probably just serve unstyled text) I commited this to master on a github repo and set up the TravisCI&nbsp;integration. </p>
+<ul>
+<li>Grab an account from <a href="https://travis-ci.org/">TravisCI</a>.</li>
+<li>create a new github token for public repos from <a href="https://github.com/settings/applications">here</a></li>
+<li>encrypt that token using the travis ruby gem (<code>gem install travis</code>)<ul>
+<li><code>travis encrypt -r gh_user/gh_repo &quot;GH_TOKEN=new_token_here&quot;</code> (you’ll need this output&nbsp;soon)</li>
+</ul>
+</li>
+<li>check out and commit an orphan branch to your repo<ul>
+<li><code>git checkout --orphan gh-pages</code></li>
+<li><code>git rm -rf .</code></li>
+<li><code>touch .nojekyll</code> (since we don’t need github trying to use jekyll on this&nbsp;repo)</li>
+<li><code>git add .</code></li>
+<li><code>git commit -m &#39;some message about gh-pages&#39;</code></li>
+<li><code>git push origin gh-pages</code></li>
+</ul>
+</li>
+<li>add a .travis.yml TravisCI config file to this repository (see the file contents&nbsp;below)</li>
+<li><p>add a simple bash script to send the build contents back to github pages (again see&nbsp;below)</p>
+<p>And that’s it! Once you’ve hooked your builds into TravisCI, you should have viewable content on github pages! You may also want to add a <code>CNAME</code> file to your wintersmith ‘contents’ dir to serve these pages from an apex domain.  And one last thing: make sure to turn off “build on pull request” on travis for this repository, don’t want someone else offering a pull request and changing your&nbsp;blog!</p>
+<p>Here are the files (but you can see my latest up-to-date versions by visiting this blog’s source <a href="https://github.com/stevenolen/technolengy.com">here</a>):</p>
+</li>
+</ul>
+<p>h2&nbsp;.travis.yml</p>
+<pre><code class="lang-yml"><span class="attr">language:</span> node_js
+<span class="attr">node_js:</span>
+<span class="bullet">  -</span> <span class="string">"0.10"</span>
+<span class="attr">before_install:</span>
+<span class="bullet">  -</span> npm install wintersmith
+<span class="attr">script:</span>
+<span class="bullet">  -</span> wintersmith build
+<span class="attr">after_success:</span> 
+<span class="bullet">  -</span> bash gh-pages-deploy.sh
+<span class="attr">branches:</span>
+<span class="attr">  only:</span>
+    master
+<span class="attr">env:</span> 
+<span class="attr">  global:</span>
+<span class="attr">    secure:</span> <span class="string">"secure_token_here_quoted"</span>
+</code></pre>
+<p>h2&nbsp;gh-pages-deploy.sh</p>
+<pre><code class="lang-bash"><span class="meta">#!/bin/bash</span>
+<span class="built_in">cd</span> build
+git init
+git config user.name <span class="string">"Travis-<span class="caps">CI</span>"</span>
+git config user.email <span class="string">"travis@email.com"</span>
+git add .
+git commit -m <span class="string">"Deployed to Github Pages"</span>
+git push --force --quiet <span class="string">"https://<span class="variable">${GH_TOKEN}</span>@github.com/gh_user/gh_repo"</span> master:gh-pages &gt; /dev/null 2&gt;&amp;1
+</code></pre>
+</section>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="content-wrap">
+        <div class="nav"><a href="/">« Full blog</a></div>
+        <section class="about"><p>This blog is poorly constructed and infrequently updated by Steve Nolen. 
+It’s wonderfully static existence is thanks to <a href="http://wintersmith.io">Wintersmith</a>.</p>
+
+        </section>
+        <section class="copy">
+          <p>&copy; 2016 Steve Nolen &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          </p>
+        </section>
+      </div>
+    </footer>
+  </body>
+</html>

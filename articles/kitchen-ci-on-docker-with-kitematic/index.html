@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>Test Kitchen on Docker with Kitematic - Derp-min
+    </title>
+    <link rel="alternate" href="http://localhost:8080/feed.xml" type="application/rss+xml" title="A sysadmin with a tendency to derp.">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body class="article-detail">
+    <header class="header">
+      <div class="content-wrap">
+        <h1>Test Kitchen on Docker with Kitematic</h1>
+        <p class="author">Written by <span class="author"><a href="mailto:technolengy@gmail.com">Steve Nolen</a></span>
+        </p>
+      </div>
+    </header>
+    <div id="content">
+      <div class="content-wrap">
+        <article class="article">
+          <section class="content"><p>I’ve had the great opportunity in the past 4 or so months to really get going with chef, and writing automated infrastructure.
+It’s an incredibly deep world/community filled with loads of wonderful people and tools.  One of the best tools for writing
+quality chef cookbooks is <a href="http://kitchen.ci">Test Kitchen</a>. Test Kitchen by default uses a vagrant/virtual box environment to
+quickly converge and test a chef cookbook.  But I’m ready to push this forward with docker for speed of convergence! Even better,
+I use a mac for my local machine and the docker team released an awesome beta of <a href="https://kitematic.com/">Kitematic</a> to facilitate docker
+containers on Mac <span class="caps">OS</span>. Getting them set up together requires very little effort, but I wanted to note it here in case it was&nbsp;helpful! </p>
+<hr>
+<p>Kitematic works extremely (hey, I haven’t used it so maybe it’s identical to) similarly to boot2docker.  Sean (who wrote the <a href="https://github.com/portertech/kitchen-docker">kitchen-docker</a>  driver) offers an example for getting this working with boot2docker, which I only slightly&nbsp;extended.</p>
+<p>First, get kitchen-docker installed via <code>gem install kitchen-docker</code>.</p>
+<p>Second, export a few environment variables (or put these in your&nbsp;`.bash_profile):</p>
+<pre><code class="lang-bash"><span class="built_in">export</span> DOCKER_HOST=tcp://192.168.99.100:2376
+<span class="built_in">export</span> DOCKER_CERT_PATH=~/.docker/machine/machines/default
+<span class="built_in">export</span> DOCKER_TLS_VERIFY=1
+</code></pre>
+<p>Next, modify the driver in your <code>.kitchen.yml</code> file:</p>
+<pre><code class="lang-yaml"><span class="meta">---</span>
+<span class="attr">driver:</span>
+<span class="attr">  name:</span> docker
+<span class="attr">driver_config:</span>
+<span class="attr">  require_chef_omnibus:</span> <span class="literal">true</span>
+<span class="attr">  use_sudo:</span> <span class="literal">false</span>
+[rest of config here]
+</code></pre>
+<p>And finally: make sure kitematic is running and get going with your tests: <code>kitchen test</code>.</p>
+<p>That’s it!&nbsp;Thanks!</p>
+</section>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="content-wrap">
+        <div class="nav"><a href="/">« Full blog</a></div>
+        <section class="about"><p>This blog is poorly constructed and infrequently updated by Steve Nolen. 
+It’s wonderfully static existence is thanks to <a href="http://wintersmith.io">Wintersmith</a>.</p>
+
+        </section>
+        <section class="copy">
+          <p>&copy; 2016 Steve Nolen &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          </p>
+        </section>
+      </div>
+    </footer>
+  </body>
+</html>

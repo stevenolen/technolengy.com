@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>Docker &quot;Development&quot; on OSX: out of space! - Derp-min
+    </title>
+    <link rel="alternate" href="http://localhost:8080/feed.xml" type="application/rss+xml" title="A sysadmin with a tendency to derp.">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body class="article-detail">
+    <header class="header">
+      <div class="content-wrap">
+        <h1>Docker &quot;Development&quot; on OSX: out of space!</h1>
+        <p class="author">Written by <span class="author"><a href="mailto:technolengy@gmail.com">Steve Nolen</a></span>
+        </p>
+      </div>
+    </header>
+    <div id="content">
+      <div class="content-wrap">
+        <article class="article">
+          <section class="content"><p>Using docker-machine/docker-toolbox to do some hefty container lifting? Constantly running out of disk space? A quick resolution to your&nbsp;problem!</p>
+<hr>
+<p>If you’re anything like me, you’ve been creating and toying with docker containers (and maybe docker-compose and the enormous ecosystem of docker tools) in a development environment (hopefully in production too!). If you’re doing dev stuff on <span class="caps">OSX</span> with the <a href="https://www.docker.com/docker-toolbox">docker-toolbox</a>, kitematic etc etc you’ve likely found that you if you debug/iterate on the same container builds you’ve filled up that measely <span class="caps">20GB</span> of space that <code>docker-machine</code> gives you in virtualbox really quickly.  The quickest way to regain some space is to remove those pesky dangling images (courtesy of <a href="http://stackoverflow.com/questions/32723111/how-to-remove-old-and-unused-docker-images">this</a> stackoverflow&nbsp;q):</p>
+<pre><code class="lang-bash">docker rm $(docker ps -qa --no-trunc --filter <span class="string">"status=exited"</span>)
+</code></pre>
+<p>or one even better (as the helpful VonC mentions) is to make an alias to do this (name it however you want, i used the keyword ‘docker’ so I could remind myself with tab&nbsp;completion):</p>
+<pre><code class="lang-bash">Steves-MacBook-Pro:~ steve$ cat ~/.bash_profile | grep none
+<span class="built_in">alias</span> docker-rm-dangling=<span class="string">'docker rmi $(docker images --filter "dangling=true" -q --no-trunc)'</span>
+</code></pre>
+<p>At some point, you’ll still end up hitting a wall.  Bloated container sizes or just <em>many, many</em> containers – you’re going to need some more space. Thankfully docker-machine makes that exceedingly simple.  I’ll assume you don’t need to save any data (it’s just dev, afterall). You can quickly swap from 20G to 50G with&nbsp;this:</p>
+<pre><code class="lang-bash">docker-machine rm default
+docker-machine create --driver virtualbox --virtualbox-disk-size <span class="string">"50000"</span> --virtualbox-memory <span class="string">"2048"</span> default
+</code></pre>
+<p>This should get me out of that bind for a good long&nbsp;while!</p>
+</section>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="content-wrap">
+        <div class="nav"><a href="/">« Full blog</a></div>
+        <section class="about"><p>This blog is poorly constructed and infrequently updated by Steve Nolen. 
+It’s wonderfully static existence is thanks to <a href="http://wintersmith.io">Wintersmith</a>.</p>
+
+        </section>
+        <section class="copy">
+          <p>&copy; 2016 Steve Nolen &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          </p>
+        </section>
+      </div>
+    </footer>
+  </body>
+</html>

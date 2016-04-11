@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>request-tracker4 sqlite woes - Derp-min
+    </title>
+    <link rel="alternate" href="http://localhost:8080/feed.xml" type="application/rss+xml" title="A sysadmin with a tendency to derp.">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic|Anonymous+Pro:400,700,400italic,700italic|Merriweather:400,700,300">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body class="article-detail">
+    <header class="header">
+      <div class="content-wrap">
+        <h1>request-tracker4 sqlite woes</h1>
+        <p class="author">Written by <span class="author"><a href="mailto:technolengy@gmail.com">Steve Nolen</a></span>
+        </p>
+      </div>
+    </header>
+    <div id="content">
+      <div class="content-wrap">
+        <article class="article">
+          <section class="content"><p>My team has been using <span class="caps">RT</span> (or request-tracker4) as a ticketing system to manage incoming requests. As with most new system implementations in a group as small as mine is, we can hit the ground running and just make changes/adjust as needed.  This one made me a bit frustrated, so I figured I’d share in case it helped someone&nbsp;else.  </p>
+<hr>
+<p>When you install request-tracker4 using the ubuntu 12.04 packages, the packages by default use sqlite (which is fine, yadda yadda, since it’s easier to set up). The annoyance here is that <span class="caps">RT</span> doesn’t readily support version upgrades when using sqlite (only mysql and&nbsp;postgres). </p>
+<p>Well, we ended up with a good 6-8 months of usage on the sqlite db but now I wanted to upgrade to a newer version! Off to migrate the sqlite db to mysql.  While sql is sql, there are some distinct inconsistencies between sqlite and mysql, so dump-&gt;import wouldn’t work (and, based on some searches, folks were having trouble with this conversion for <span class="caps">RT</span> specifically.  I wrote a little bash script to manage the process (so I could test on a clone of my vm, then perform on the live version).  It worked perfectly, so I’ll leave it&nbsp;below! </p>
+<p>I used a root account for this (in addition to a mysql root account, since the <span class="caps">RT</span> db init process was extremely temperamental), and don’t forget to change the RT_SiteConfig.pm file as suggested in the script! Some extra datatype conversions were necessary, since some sqlite columns supported NULL when the mysql equivalent did&nbsp;not.</p>
+<pre><code class="lang-bash"><span class="meta">#!/bin/bash</span>
+<span class="comment">#converts a request-tracker 4.0.4 sqlite database to mysql</span>
+<span class="comment">#run me as root, or adjust accordingly</span>
+
+<span class="comment">####<span class="caps">BEFORE</span> RUNNING####</span>
+<span class="comment">##edit /etc/request-tracker4/RT_SiteConfig.pm</span>
+<span class="comment">##Set($DatabaseType, 'mysql');</span>
+<span class="comment">##Set($DatabaseHost, 'localhost');</span>
+<span class="comment">##Set($DatabasePort, '');</span>
+<span class="comment">##Set($DatabaseUser , 'rt_user');</span>
+<span class="comment">##Set($DatabasePassword , '{password}');</span>
+<span class="comment">##Set($DatabaseName , 'rt_dbname');</span>
+
+<span class="comment">#best to stop apache before running this, just so we can be sane about data usage.</span>
+service apache2 stop
+
+<span class="comment">#create table list</span>
+<span class="built_in">export</span> tables=<span class="string">"<span class="caps">ACL</span>
+Articles
+Attachments
+Attributes
+CachedGroupMembers
+Classes
+CustomFieldValues
+CustomFields
+GroupMembers
+Groups
+Links
+ObjectClasses
+ObjectCustomFieldValues
+ObjectCustomFields
+ObjectTopics
+Principals
+Queues
+ScripActions
+ScripConditions
+Scrips
+Templates
+Tickets
+Topics
+Transactions
+Users"</span>
+
+
+
+<span class="comment">#init the rt mysql database, remove pre-created data, since we don't want it.</span>
+rt-setup-database --action init --dba root
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="variable">$tables</span>
+<span class="keyword">do</span>
+    mysql -urt_user -p{password} rt_dbname <span class="_">-e</span> <span class="string">"delete from <span class="variable">$i</span>"</span>
+<span class="keyword">done</span>
+
+<span class="comment">#copy existing sqlite database (so we don't overwrite), file location based on installation method</span>
+mkdir -p /tmp/rt_sqlite
+cp /var/lib/dbconfig-common/sqlite3/request-tracker4/rtdb /tmp/rt_sqlite/rtdb.sqlite
+
+
+<span class="comment">#write our sqlite commands to a temporary file. notice the null commands at the beginning.</span>
+<span class="built_in">echo</span> <span class="string">"update Templates set TranslationOf=0 where TranslationOf is <span class="caps">NULL</span>;
+update Tickets set IssueStatement=0 where IssueStatement is NULL;
+update Tickets set Resolution=0 where Resolution is NULL;
+update Transactions set TimeTaken=0 where TimeTaken is NULL;
+update Tickets set InitialPriority=0 where InitialPriority is NULL;
+update Tickets set FinalPriority=0 where FinalPriority is NULL;
+update Tickets set TimeEstimated=0 where TimeEstimated is NULL;
+update Tickets set TimeLeft=0 where TimeLeft is NULL;"</span> &gt; /tmp/rt_sqlite/rt_sqlite.transactions
+
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="variable">$tables</span>
+<span class="keyword">do</span>
+    <span class="built_in">echo</span> <span class="string">".output /tmp/rt_sqlite/data_<span class="variable">$i</span>"</span> &gt;&gt; /tmp/rt_sqlite/rt_sqlite.transactions
+    <span class="built_in">echo</span> <span class="string">".mode insert <span class="variable">$i</span>"</span> &gt;&gt; /tmp/rt_sqlite/rt_sqlite.transactions
+    <span class="built_in">echo</span> <span class="string">"select * from <span class="variable">$i</span>;"</span> &gt;&gt; /tmp/rt_sqlite/rt_sqlite.transactions
+<span class="keyword">done</span>
+
+
+<span class="comment">#export data from sqlite, separate file per table</span>
+sqlite3 /tmp/rt_sqlite/rtdb.sqlite &lt; /tmp/rt_sqlite/rt_sqlite.transactions
+
+<span class="comment">#finally, import the data to mysql</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> `ls -1 /tmp/rt_sqlite/data_*`
+<span class="keyword">do</span> 
+    mysql -urt_user -p{password} rt_dbname &lt; <span class="variable">$i</span>
+<span class="keyword">done</span>
+
+<span class="comment">#let's start apache back up and cross our fingers!</span>
+service apache2 start
+</code></pre>
+</section>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="content-wrap">
+        <div class="nav"><a href="/">« Full blog</a></div>
+        <section class="about"><p>This blog is poorly constructed and infrequently updated by Steve Nolen. 
+It’s wonderfully static existence is thanks to <a href="http://wintersmith.io">Wintersmith</a>.</p>
+
+        </section>
+        <section class="copy">
+          <p>&copy; 2016 Steve Nolen &mdash; powered by&nbsp;<a href="https://github.com/jnordberg/wintersmith">Wintersmith</a>
+          </p>
+        </section>
+      </div>
+    </footer>
+  </body>
+</html>
