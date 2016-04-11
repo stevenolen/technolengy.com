@@ -21,7 +21,7 @@ First, get kitchen-docker installed via `gem install kitchen-docker`.
 Second, export a few environment variables (or put these in your `.bash_profile):
 ```bash
 export DOCKER_HOST=tcp://192.168.99.100:2376
-export DOCKER_CERT_PATH=~/.docker/machine/machines/dev
+export DOCKER_CERT_PATH=~/.docker/machine/machines/default
 export DOCKER_TLS_VERIFY=1
 ```
 
